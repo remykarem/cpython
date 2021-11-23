@@ -760,6 +760,32 @@ Yes.  Usually this is done by nesting :keyword:`lambda` within
    #        |          |_________________ range on y axis
    #        |____________________________ range on x axis
 
+We can also do this with the new arrow syntax::
+
+   from functools import reduce
+
+   # Primes < 1000
+   print(list(filter(None,map(\|y\|->y*reduce(\|x,y\|->x*y!=0,
+   map(\|x,y=y\|->y%x,range(2,int(pow(y,0.5)+1))),1),range(2,1000)))))
+
+   # First 10 Fibonacci numbers
+   print(list(map(\|x,f=\|x,f\|->(f(x-1,f)+f(x-2,f)) if x>1 else 1\|->
+   f(x,f), range(10))))
+
+   # Mandelbrot set
+   print((\|Ru,Ro,Iu,Io,IM,Sx,Sy\|->reduce(\|x,y\|->x+y,map(\|y,
+   Iu=Iu,Io=Io,Ru=Ru,Ro=Ro,Sy=Sy,L=\|yc,Iu=Iu,Io=Io,Ru=Ru,Ro=Ro,i=IM,
+   Sx=Sx,Sy=Sy\|->reduce(\|x,y\|->x+y,map(\|x,xc=Ru,yc=yc,Ru=Ru,Ro=Ro,
+   i=i,Sx=Sx,F=\|xc,yc,x,y,k,f=\|xc,yc,x,y,k,f\|->(k<=0)or (x*x+y*y
+   >=4.0) or 1+f(xc,yc,x*x-y*y+xc,2.0*x*y+yc,k-1,f)\|->f(xc,yc,x,y,k,f)\|->chr(
+   64+F(Ru+x*(Ro-Ru)/Sx,yc,0,0,i)),range(Sx)))\|->L(Iu+y*(Io-Iu)/Sy),range(Sy
+   ))))(-2.1, 0.7, -1.2, 1.2, 30, 80, 24))
+   #    \___ ___/  \___ ___/  |   |   |__ lines on screen
+   #        V          V      |   |______ columns on screen
+   #        |          |      |__________ maximum of "iterations"
+   #        |          |_________________ range on y axis
+   #        |____________________________ range on x axis
+
 Don't try this at home, kids!
 
 

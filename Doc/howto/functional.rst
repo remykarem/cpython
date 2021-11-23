@@ -1124,6 +1124,13 @@ usual way::
     def print_assign(name, value):
         return name + '=' + str(value)
 
+Another alternative is to use the arrow syntax, which is another way to write
+lambda expressions::
+
+    adder = \|x, y\| -> x+y
+
+    print_assign = \|name, value\| -> name + '=' + str(value)
+
 Which alternative is preferable?  That's a style question; my usual course is to
 avoid using ``lambda``.
 

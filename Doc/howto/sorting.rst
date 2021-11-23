@@ -332,6 +332,8 @@ Odd and Ends
   .. doctest::
 
     >>> Student.__lt__ = lambda self, other: self.age < other.age
+    >>> # Alternatively, you can use the lambda arrow syntax
+    >>> Student.__lt__ = \|self, other\| self.age < other.age
     >>> sorted(student_objects)
     [('dave', 'B', 10), ('jane', 'B', 12), ('john', 'A', 15)]
 

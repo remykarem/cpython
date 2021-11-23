@@ -1740,7 +1740,7 @@ Conditional expressions
 
 .. productionlist:: python-grammar
    conditional_expression: `or_test` ["if" `or_test` "else" `expression`]
-   expression: `conditional_expression` | `lambda_expr`
+   expression: `conditional_expression` | `lambda_expr` | `lambda_expr_new`
 
 Conditional expressions (sometimes called a "ternary operator") have the lowest
 priority of all Python operations.
@@ -1768,13 +1768,19 @@ Lambdas
    lambda_expr: "lambda" [`parameter_list`] ":" `expression`
 
 Lambda expressions (sometimes called lambda forms) are used to create anonymous
-functions. The expression ``lambda parameters: expression`` yields a function
-object.  The unnamed object behaves like a function object defined with:
+functions. The expression ``lambda parameters: expression`` yields a function object.
+The unnamed object behaves like a function object defined with:
 
 .. code-block:: none
 
    def <lambda>(parameters):
        return expression
+
+The lambda expression can also take on the more familiar arrow syntax
+``\|parameters\| -> expression``.
+
+.. productionlist:: python-grammar
+   lambda_expr_new: "\|" [`parameter_list`] "\|" "->" `expression`
 
 See section :ref:`function` for the syntax of parameter lists.  Note that
 functions created with lambda expressions cannot contain statements or
@@ -1908,7 +1914,7 @@ precedence and have a left-to-right chaining feature as described in the
 +-----------------------------------------------+-------------------------------------+
 | :keyword:`if <if_expr>` -- :keyword:`!else`   | Conditional expression              |
 +-----------------------------------------------+-------------------------------------+
-| :keyword:`lambda`                             | Lambda expression                   |
+| :keyword:`lambda` or ``| <args> | -> <expr>`` | Lambda expression                   |
 +-----------------------------------------------+-------------------------------------+
 | ``:=``                                        | Assignment expression               |
 +-----------------------------------------------+-------------------------------------+

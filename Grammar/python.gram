@@ -800,6 +800,8 @@ group[expr_ty]:
 lambdef[expr_ty]:
     | 'lambda' a=[lambda_params] ':' b=expression {
         _PyAST_Lambda((a) ? a : CHECK(arguments_ty, _PyPegen_empty_arguments(p)), b, EXTRA) }
+    | '|' a=[lambda_params_new] '|' '->' b=expression {
+        _PyAST_Lambda((a) ? a : CHECK(arguments_ty, _PyPegen_empty_arguments(p)), b, EXTRA) }
 
 lambda_params[arguments_ty]:
     | invalid_lambda_parameters
@@ -847,6 +849,56 @@ lambda_param_maybe_default[NameDefaultPair*]:
     | a=lambda_param c=default? ',' { _PyPegen_name_default_pair(p, a, c, NULL) }
     | a=lambda_param c=default? &':' { _PyPegen_name_default_pair(p, a, c, NULL) }
 lambda_param[arg_ty]: a=NAME { _PyAST_arg(a->v.Name.id, NULL, NULL, EXTRA) }
+
+# Lambda functions new syntax
+# ---------------------------
+
+lambda_params_new[arguments_ty]:
+    | invalid_lambda_parameters_new
+    | lambda_parameters_new
+
+# lambda_parameters etc. duplicates parameters but without annotations
+# or type comments, and if there's no comma after a parameter, we expect
+# a colon, not a close parenthesis.  (For more, see parameters above.)
+#
+lambda_parameters_new[arguments_ty]:
+    | a=lambda_slash_no_default_new b[asdl_arg_seq*]=lambda_param_no_default_new* c=lambda_param_with_default_new* d=[lambda_star_etc_new] {
+        _PyPegen_make_arguments(p, a, NULL, b, c, d) }
+    | a=lambda_slash_with_default_new b=lambda_param_with_default_new* c=[lambda_star_etc_new] {
+        _PyPegen_make_arguments(p, NULL, a, NULL, b, c) }
+    | a[asdl_arg_seq*]=lambda_param_no_default_new+ b=lambda_param_with_default_new* c=[lambda_star_etc_new] {
+        _PyPegen_make_arguments(p, NULL, NULL, a, b, c) }
+    | a=lambda_param_with_default_new+ b=[lambda_star_etc_new] { _PyPegen_make_arguments(p, NULL, NULL, NULL, a, b)}
+    | a=lambda_star_etc_new { _PyPegen_make_arguments(p, NULL, NULL, NULL, NULL, a) }
+
+lambda_slash_no_default_new[asdl_arg_seq*]:
+    | a[asdl_arg_seq*]=lambda_param_no_default_new+ '/' ',' { a }
+    | a[asdl_arg_seq*]=lambda_param_no_default_new+ '/' &'|' { a }
+
+lambda_slash_with_default_new[SlashWithDefault*]:
+    | a=lambda_param_no_default_new* b=lambda_param_with_default_new+ '/' ',' { _PyPegen_slash_with_default(p, (asdl_arg_seq *)a, b) }
+    | a=lambda_param_no_default_new* b=lambda_param_with_default_new+ '/' &'|' { _PyPegen_slash_with_default(p, (asdl_arg_seq *)a, b) }
+
+lambda_star_etc_new[StarEtc*]:
+    | '*' a=lambda_param_no_default_new b=lambda_param_maybe_default_new* c=[lambda_kwds_new] {
+        _PyPegen_star_etc(p, a, b, c) }
+    | '*' ',' b=lambda_param_maybe_default_new+ c=[lambda_kwds_new] {
+        _PyPegen_star_etc(p, NULL, b, c) }
+    | a=lambda_kwds_new { _PyPegen_star_etc(p, NULL, NULL, a) }
+    | invalid_lambda_star_etc_new
+
+lambda_kwds_new[arg_ty]: '**' a=lambda_param_no_default_new { a }
+
+lambda_param_no_default_new[arg_ty]:
+    | a=lambda_param_new ',' { a }
+    | a=lambda_param_new &'|' { a }
+lambda_param_with_default_new[NameDefaultPair*]:
+    | a=lambda_param_new c=default ',' { _PyPegen_name_default_pair(p, a, c, NULL) }
+    | a=lambda_param_new c=default &'|' { _PyPegen_name_default_pair(p, a, c, NULL) }
+lambda_param_maybe_default_new[NameDefaultPair*]:
+    | a=lambda_param_new c=default? ',' { _PyPegen_name_default_pair(p, a, c, NULL) }
+    | a=lambda_param_new c=default? &'|' { _PyPegen_name_default_pair(p, a, c, NULL) }
+lambda_param_new[arg_ty]: a=NAME { _PyAST_arg(a->v.Name.id, NULL, NULL, EXTRA) }
 
 # LITERALS
 # ========
@@ -1146,14 +1198,22 @@ invalid_parameters_helper: # This is only there to avoid type errors
 invalid_lambda_parameters:
     | lambda_param_no_default* invalid_lambda_parameters_helper a=lambda_param_no_default {
         RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "non-default argument follows default argument") }
+invalid_lambda_parameters_new:
+    | lambda_param_no_default_new* invalid_lambda_parameters_helper_new a=lambda_param_no_default_new {
+        RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "non-default argument follows default argument") }
 invalid_lambda_parameters_helper:
     | a=lambda_slash_with_default { _PyPegen_singleton_seq(p, a) }
     | lambda_param_with_default+
+invalid_lambda_parameters_helper_new:
+    | a=lambda_slash_with_default_new { _PyPegen_singleton_seq(p, a) }
+    | lambda_param_with_default_new+
 invalid_star_etc:
     | a='*' (')' | ',' (')' | '**')) { RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "named arguments must follow bare *") }
     | '*' ',' TYPE_COMMENT { RAISE_SYNTAX_ERROR("bare * has associated type comment") }
 invalid_lambda_star_etc:
     | '*' (':' | ',' (':' | '**')) { RAISE_SYNTAX_ERROR("named arguments must follow bare *") }
+invalid_lambda_star_etc_new:
+    | '*' ('|' | ',' ('|' | '**')) { RAISE_SYNTAX_ERROR("named arguments must follow bare *") }
 invalid_double_type_comments:
     | TYPE_COMMENT NEWLINE TYPE_COMMENT NEWLINE INDENT {
         RAISE_SYNTAX_ERROR("Cannot have two type comments on def") }
