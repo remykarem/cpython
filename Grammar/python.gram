@@ -887,15 +887,34 @@ kvpair[KeyValuePair*]: a=expression ':' b=expression { _PyPegen_key_value_pair(p
 for_if_clauses[asdl_comprehension_seq*]:
     | a[asdl_comprehension_seq*]=for_if_clause+ { a }
 
+for_if_clauses_new[asdl_comprehension_seq*]:
+    | a=for_if_clause ('~'|NEWLINE) b=for_if_clause ('~'|NEWLINE) c=for_if_clause { 
+        (asdl_comprehension_seq*)_PyPegen_seq_append_to_end(
+            p,
+            (asdl_seq*)_PyPegen_seq_append_to_end(
+                p,
+                CHECK(asdl_seq*, _PyPegen_singleton_seq(p, c)),
+                b),
+            a) }
+    | a=for_if_clause ('~'|NEWLINE) b=for_if_clause { 
+        (asdl_comprehension_seq*)_PyPegen_seq_append_to_end(
+            p,
+            CHECK(asdl_seq*, _PyPegen_singleton_seq(p, b)),
+            a) }
+    | a=for_if_clause { CHECK(asdl_comprehension_seq*, _PyPegen_singleton_seq(p, a)) }
+
 for_if_clause[comprehension_ty]:
     | ASYNC 'for' a=star_targets 'in' ~ b=disjunction c[asdl_expr_seq*]=('if' z=disjunction { z })* {
         CHECK_VERSION(comprehension_ty, 6, "Async comprehensions are", _PyAST_comprehension(a, b, c, 1, p->arena)) }
     | 'for' a=star_targets 'in' ~ b=disjunction c[asdl_expr_seq*]=('if' z=disjunction { z })* {
         _PyAST_comprehension(a, b, c, 0, p->arena) }
+    | a=star_targets '<-' ~ b=disjunction c[asdl_expr_seq*]=(',' z=disjunction { z })* {
+        _PyAST_comprehension(a, b, c, 0, p->arena) }
     | invalid_for_target
 
 listcomp[expr_ty]:
     | '[' a=named_expression b=for_if_clauses ']' { _PyAST_ListComp(a, b, EXTRA) }
+    | '[' a=named_expression ('~'|NEWLINE) b=for_if_clauses_new ']' { _PyAST_ListComp(a, b, EXTRA) }
     | invalid_comprehension
 
 setcomp[expr_ty]:
