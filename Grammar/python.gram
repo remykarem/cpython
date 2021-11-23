@@ -620,6 +620,7 @@ expression[expr_ty] (memo):
     | invalid_expression
     | invalid_legacy_expression
     | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
+    | a=disjunction '?' b=disjunction ':' c=expression { _PyAST_IfExp(a, b, c, EXTRA) }
     | disjunction
     | lambdef
 
@@ -1087,6 +1088,7 @@ invalid_expression:
         _PyPegen_check_legacy_stmt(p, a) ? NULL : p->tokens[p->mark-1]->level == 0 ? NULL :
         RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "invalid syntax. Perhaps you forgot a comma?") }
    | a=disjunction 'if' b=disjunction !('else'|':') { RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "expected 'else' after 'if' expression") }
+   | a=disjunction '?' b=disjunction !':' { RAISE_SYNTAX_ERROR_KNOWN_RANGE(b, a, "expected ':' after '?' expression") }
 
 invalid_named_expression:
     | a=expression ':=' expression {

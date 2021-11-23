@@ -9731,6 +9731,7 @@ expressions_rule(Parser *p)
 //     | invalid_expression
 //     | invalid_legacy_expression
 //     | disjunction 'if' disjunction 'else' expression
+//     | disjunction '?' disjunction ':' expression
 //     | disjunction
 //     | lambdef
 static expr_ty
@@ -9838,6 +9839,51 @@ expression_rule(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s expression[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "disjunction 'if' disjunction 'else' expression"));
+    }
+    { // disjunction '?' disjunction ':' expression
+        if (p->error_indicator) {
+            D(p->level--);
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> expression[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "disjunction '?' disjunction ':' expression"));
+        Token * _literal;
+        Token * _literal_1;
+        expr_ty a;
+        expr_ty b;
+        expr_ty c;
+        if (
+            (a = disjunction_rule(p))  // disjunction
+            &&
+            (_literal = _PyPegen_expect_token(p, 54))  // token='?'
+            &&
+            (b = disjunction_rule(p))  // disjunction
+            &&
+            (_literal_1 = _PyPegen_expect_token(p, 11))  // token=':'
+            &&
+            (c = expression_rule(p))  // expression
+        )
+        {
+            D(fprintf(stderr, "%*c+ expression[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "disjunction '?' disjunction ':' expression"));
+            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
+            if (_token == NULL) {
+                D(p->level--);
+                return NULL;
+            }
+            int _end_lineno = _token->end_lineno;
+            UNUSED(_end_lineno); // Only used by EXTRA macro
+            int _end_col_offset = _token->end_col_offset;
+            UNUSED(_end_col_offset); // Only used by EXTRA macro
+            _res = _PyAST_IfExp ( a , b , c , EXTRA );
+            if (_res == NULL && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                D(p->level--);
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s expression[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "disjunction '?' disjunction ':' expression"));
     }
     { // disjunction
         if (p->error_indicator) {
@@ -18271,6 +18317,7 @@ invalid_legacy_expression_rule(Parser *p)
 // invalid_expression:
 //     | !(NAME STRING | SOFT_KEYWORD) disjunction expression_without_invalid
 //     | disjunction 'if' disjunction !('else' | ':')
+//     | disjunction '?' disjunction !':'
 static void *
 invalid_expression_rule(Parser *p)
 {
@@ -18341,6 +18388,38 @@ invalid_expression_rule(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s invalid_expression[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "disjunction 'if' disjunction !('else' | ':')"));
+    }
+    { // disjunction '?' disjunction !':'
+        if (p->error_indicator) {
+            D(p->level--);
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> invalid_expression[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "disjunction '?' disjunction !':'"));
+        Token * _literal;
+        expr_ty a;
+        expr_ty b;
+        if (
+            (a = disjunction_rule(p))  // disjunction
+            &&
+            (_literal = _PyPegen_expect_token(p, 54))  // token='?'
+            &&
+            (b = disjunction_rule(p))  // disjunction
+            &&
+            _PyPegen_lookahead_with_int(0, _PyPegen_expect_token, p, 11)  // token=':'
+        )
+        {
+            D(fprintf(stderr, "%*c+ invalid_expression[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "disjunction '?' disjunction !':'"));
+            _res = RAISE_SYNTAX_ERROR_KNOWN_RANGE ( b , a , "expected ':' after '?' expression" );
+            if (_res == NULL && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                D(p->level--);
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s invalid_expression[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "disjunction '?' disjunction !':'"));
     }
     _res = NULL;
   done:
